@@ -1,8 +1,13 @@
 package org.facens.grupo_6_gameeducator.service;
 
 import java.util.List;
+import org.facens.grupo_6_gameeducator.domain.Curso;
 import org.facens.grupo_6_gameeducator.domain.Post;
 import org.facens.grupo_6_gameeducator.domain.RespostaPost;
+import org.facens.grupo_6_gameeducator.domain.Usuario;
+import org.facens.grupo_6_gameeducator.exception.AcessoNegadoException;
+import org.facens.grupo_6_gameeducator.exception.RecursoNaoEncontradoException;
+import org.facens.grupo_6_gameeducator.exception.RegraDeNegocioException;
 import org.facens.grupo_6_gameeducator.repository.CursoRepository;
 import org.facens.grupo_6_gameeducator.repository.MatriculaRepository;
 import org.facens.grupo_6_gameeducator.repository.PostRepository;
@@ -14,8 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Aba de foruns: "Como aluno, quero ter acesso aos foruns, para interagir e ajudar."
  *
- * <p>ETAPA RED do TDD: apenas os STUBS para o codigo compilar. Nenhuma regra
- * implementada ainda -> todos os testes de aceitacao e de unidade FALHAM.
+ * <p>ETAPA GREEN do TDD: implementacao ingenua, apenas o suficiente para os
+ * testes passarem. A busca de usuario/curso e a checagem de acesso estao
+ * repetidas em listarPosts, publicar e responder.
  */
 @Service
 @Transactional
@@ -39,25 +45,62 @@ public class ForumService {
         this.respostaPostRepository = respostaPostRepository;
     }
 
-    /** STUB (RED) - ainda nao implementado. */
     @Transactional(readOnly = true)
     public List<Post> listarPosts(Long usuarioId, Long cursoId) {
-        throw new UnsupportedOperationException("TODO: implementar listarPosts - etapa RED do TDD");
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> RecursoNaoEncontradoException.de("Usuario", usuarioId));
+        Curso curso = cursoRepository.findById(cursoId)
+                .orElseThrow(() -> RecursoNaoEncontradoException.de("Curso", cursoId));
+        if (!matriculaRepository.existsByCursoIdAndAlunoId(cursoId, usuarioId)
+                && !curso.ehResponsavel(usuario)) {
+            throw new AcessoNegadoException(
+                    "Usuario " + usuarioId + " nao tem acesso ao forum do curso " + cursoId);
+        }
+        return postRepository.findByCursoIdOrderByDataHoraDescIdDesc(cursoId);
     }
 
-    /** STUB (RED) - ainda nao implementado. */
     public Post publicar(Long usuarioId, Long cursoId, String titulo, String conteudo) {
-        throw new UnsupportedOperationException("TODO: implementar publicar - etapa RED do TDD");
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> RecursoNaoEncontradoException.de("Usuario", usuarioId));
+        Curso curso = cursoRepository.findById(cursoId)
+                .orElseThrow(() -> RecursoNaoEncontradoException.de("Curso", cursoId));
+        if (!matriculaRepository.existsByCursoIdAndAlunoId(cursoId, usuarioId)
+                && !curso.ehResponsavel(usuario)) {
+            throw new AcessoNegadoException(
+                    "Usuario " + usuarioId + " nao tem acesso ao forum do curso " + cursoId);
+        }
+        if (titulo == null || titulo.isBlank()) {
+            throw new RegraDeNegocioException("O post precisa de um titulo");
+        }
+        if (conteudo == null || conteudo.isBlank()) {
+            throw new RegraDeNegocioException("O post precisa de um conteudo");
+        }
+        return postRepository.save(new Post(curso, usuario, titulo, conteudo));
     }
 
-    /** STUB (RED) - ainda nao implementado. */
     public RespostaPost responder(Long usuarioId, Long postId, String conteudo) {
-        throw new UnsupportedOperationException("TODO: implementar responder - etapa RED do TDD");
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> RecursoNaoEncontradoException.de("Post", postId));
+        Long cursoId = post.getCurso().getId();
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> RecursoNaoEncontradoException.de("Usuario", usuarioId));
+        Curso curso = cursoRepository.findById(cursoId)
+                .orElseThrow(() -> RecursoNaoEncontradoException.de("Curso", cursoId));
+        if (!matriculaRepository.existsByCursoIdAndAlunoId(cursoId, usuarioId)
+                && !curso.ehResponsavel(usuario)) {
+            throw new AcessoNegadoException(
+                    "Usuario " + usuarioId + " nao tem acesso ao forum do curso " + cursoId);
+        }
+        if (conteudo == null || conteudo.isBlank()) {
+            throw new RegraDeNegocioException("A resposta precisa de um conteudo");
+        }
+        RespostaPost resposta = new RespostaPost(usuario, conteudo);
+        post.adicionarResposta(resposta);
+        return respostaPostRepository.save(resposta);
     }
 
-    /** STUB (RED) - ainda nao implementado. */
     @Transactional(readOnly = true)
     public List<RespostaPost> respostasDo(Long postId) {
-        throw new UnsupportedOperationException("TODO: implementar respostasDo - etapa RED do TDD");
+        return respostaPostRepository.findByPostIdOrderByIdAsc(postId);
     }
 }
