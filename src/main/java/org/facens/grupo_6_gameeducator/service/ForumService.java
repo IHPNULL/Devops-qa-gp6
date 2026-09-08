@@ -18,10 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Aba de foruns: "Como aluno, quero ter acesso aos foruns, para interagir e ajudar."
- *
- * <p>ETAPA GREEN do TDD: implementacao ingenua, apenas o suficiente para os
- * testes passarem. A busca de usuario/curso e a checagem de acesso estao
- * repetidas em listarPosts, publicar e responder.
+ * Vejo os posts, respondo, sou respondido e publico o meu proprio post.
  */
 @Service
 @Transactional
@@ -45,56 +42,34 @@ public class ForumService {
         this.respostaPostRepository = respostaPostRepository;
     }
 
+    /** Posts do forum do curso, do mais recente para o mais antigo. */
     @Transactional(readOnly = true)
     public List<Post> listarPosts(Long usuarioId, Long cursoId) {
-        Usuario usuario = usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> RecursoNaoEncontradoException.de("Usuario", usuarioId));
-        Curso curso = cursoRepository.findById(cursoId)
-                .orElseThrow(() -> RecursoNaoEncontradoException.de("Curso", cursoId));
-        if (!matriculaRepository.existsByCursoIdAndAlunoId(cursoId, usuarioId)
-                && !curso.ehResponsavel(usuario)) {
-            throw new AcessoNegadoException(
-                    "Usuario " + usuarioId + " nao tem acesso ao forum do curso " + cursoId);
-        }
+        exigirAcessoAoCurso(usuarioId, cursoId);
         return postRepository.findByCursoIdOrderByDataHoraDescIdDesc(cursoId);
     }
 
+    /** Publica um post proprio no forum do curso. */
     public Post publicar(Long usuarioId, Long cursoId, String titulo, String conteudo) {
-        Usuario usuario = usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> RecursoNaoEncontradoException.de("Usuario", usuarioId));
-        Curso curso = cursoRepository.findById(cursoId)
-                .orElseThrow(() -> RecursoNaoEncontradoException.de("Curso", cursoId));
-        if (!matriculaRepository.existsByCursoIdAndAlunoId(cursoId, usuarioId)
-                && !curso.ehResponsavel(usuario)) {
-            throw new AcessoNegadoException(
-                    "Usuario " + usuarioId + " nao tem acesso ao forum do curso " + cursoId);
-        }
+        Acesso acesso = exigirAcessoAoCurso(usuarioId, cursoId);
         if (titulo == null || titulo.isBlank()) {
             throw new RegraDeNegocioException("O post precisa de um titulo");
         }
         if (conteudo == null || conteudo.isBlank()) {
             throw new RegraDeNegocioException("O post precisa de um conteudo");
         }
-        return postRepository.save(new Post(curso, usuario, titulo, conteudo));
+        return postRepository.save(new Post(acesso.curso(), acesso.usuario(), titulo, conteudo));
     }
 
+    /** Responde um post: e assim que o aluno responde e e respondido. */
     public RespostaPost responder(Long usuarioId, Long postId, String conteudo) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> RecursoNaoEncontradoException.de("Post", postId));
-        Long cursoId = post.getCurso().getId();
-        Usuario usuario = usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> RecursoNaoEncontradoException.de("Usuario", usuarioId));
-        Curso curso = cursoRepository.findById(cursoId)
-                .orElseThrow(() -> RecursoNaoEncontradoException.de("Curso", cursoId));
-        if (!matriculaRepository.existsByCursoIdAndAlunoId(cursoId, usuarioId)
-                && !curso.ehResponsavel(usuario)) {
-            throw new AcessoNegadoException(
-                    "Usuario " + usuarioId + " nao tem acesso ao forum do curso " + cursoId);
-        }
+        Acesso acesso = exigirAcessoAoCurso(usuarioId, post.getCurso().getId());
         if (conteudo == null || conteudo.isBlank()) {
             throw new RegraDeNegocioException("A resposta precisa de um conteudo");
         }
-        RespostaPost resposta = new RespostaPost(usuario, conteudo);
+        RespostaPost resposta = new RespostaPost(acesso.usuario(), conteudo);
         post.adicionarResposta(resposta);
         return respostaPostRepository.save(resposta);
     }
@@ -102,5 +77,22 @@ public class ForumService {
     @Transactional(readOnly = true)
     public List<RespostaPost> respostasDo(Long postId) {
         return respostaPostRepository.findByPostIdOrderByIdAsc(postId);
+    }
+
+    /** Quem acessou o forum e em qual curso. */
+    private record Acesso(Usuario usuario, Curso curso) {
+    }
+
+    /** Acesso ao forum: aluno matriculado ou o professor responsavel pelo curso. */
+    private Acesso exigirAcessoAoCurso(Long usuarioId, Long cursoId) {
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> RecursoNaoEncontradoException.de("Usuario", usuarioId));
+        Curso curso = cursoRepository.findById(cursoId)
+                .orElseThrow(() -> RecursoNaoEncontradoException.de("Curso", cursoId));
+        if (matriculaRepository.existsByCursoIdAndAlunoId(cursoId, usuarioId) || curso.ehResponsavel(usuario)) {
+            return new Acesso(usuario, curso);
+        }
+        throw new AcessoNegadoException(
+                "Usuario " + usuarioId + " nao tem acesso ao forum do curso " + cursoId);
     }
 }
