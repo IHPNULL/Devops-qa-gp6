@@ -1,5 +1,9 @@
 package org.facens.grupo_6_gameeducator.service.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import java.util.List;
 
 /**
@@ -9,9 +13,9 @@ import java.util.List;
  * @param xp XP creditado ao aluno no primeiro acerto
  */
 public record NovoDesafioRequest(
-        String enunciado,
-        List<String> alternativas,
+        @NotBlank(message = "nao pode estar em branco") String enunciado,
+        @NotEmpty @Size(min = 2, message = "precisa de ao menos duas alternativas") List<String> alternativas,
         int indiceRespostaCorreta,
-        int xp
+        @Positive(message = "precisa ser maior que zero") int xp
 ) {
 }

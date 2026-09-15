@@ -1,5 +1,6 @@
 package org.facens.grupo_6_gameeducator.web;
 
+import jakarta.validation.Valid;
 import java.util.List;
 import org.facens.grupo_6_gameeducator.service.ForumService;
 import org.facens.grupo_6_gameeducator.web.dto.NovaRespostaPostRequest;
@@ -40,7 +41,7 @@ public class ForumController {
     @PostMapping("/cursos/{cursoId}/forum")
     public PostResponse publicar(@PathVariable Long cursoId,
                                  @RequestHeader(HEADER_USUARIO) Long usuarioId,
-                                 @RequestBody NovoPostRequest request) {
+                                 @Valid @RequestBody NovoPostRequest request) {
         return PostResponse.de(forumService.publicar(usuarioId, cursoId, request.titulo(), request.conteudo()));
     }
 
@@ -48,7 +49,7 @@ public class ForumController {
     @PostMapping("/forum/posts/{postId}/respostas")
     public RespostaPostResponse responder(@PathVariable Long postId,
                                           @RequestHeader(HEADER_USUARIO) Long usuarioId,
-                                          @RequestBody NovaRespostaPostRequest request) {
+                                          @Valid @RequestBody NovaRespostaPostRequest request) {
         return RespostaPostResponse.de(forumService.responder(usuarioId, postId, request.conteudo()));
     }
 }

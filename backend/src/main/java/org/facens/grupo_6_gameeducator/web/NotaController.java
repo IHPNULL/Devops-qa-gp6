@@ -1,5 +1,6 @@
 package org.facens.grupo_6_gameeducator.web;
 
+import jakarta.validation.Valid;
 import java.util.List;
 import org.facens.grupo_6_gameeducator.domain.Nota;
 import org.facens.grupo_6_gameeducator.service.NotaService;
@@ -40,7 +41,7 @@ public class NotaController {
     public NotaResponse lancar(@PathVariable Long cursoId,
                                @PathVariable Long alunoId,
                                @RequestHeader(HEADER_USUARIO) Long usuarioId,
-                               @RequestBody LancarNotaRequest request) {
+                               @Valid @RequestBody LancarNotaRequest request) {
         Nota nota = notaService.lancar(usuarioId, cursoId, alunoId, request.avaliacao(), request.valor());
         return NotaResponse.de(nota);
     }

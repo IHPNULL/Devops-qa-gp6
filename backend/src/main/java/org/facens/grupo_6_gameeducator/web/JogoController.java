@@ -1,9 +1,9 @@
 package org.facens.grupo_6_gameeducator.web;
 
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.stream.IntStream;
 import org.facens.grupo_6_gameeducator.domain.ProgressoAluno;
-import org.facens.grupo_6_gameeducator.exception.RegraDeNegocioException;
 import org.facens.grupo_6_gameeducator.service.JogoService;
 import org.facens.grupo_6_gameeducator.service.dto.ResultadoResposta;
 import org.facens.grupo_6_gameeducator.web.dto.MedalhaResponse;
@@ -36,10 +36,7 @@ public class JogoController {
     @PostMapping("/desafios/{desafioId}/respostas")
     public ResultadoResposta responder(@PathVariable Long desafioId,
                                        @RequestHeader(HEADER_USUARIO) Long usuarioId,
-                                       @RequestBody RespostaRequest request) {
-        if (request.indiceResposta() == null) {
-            throw new RegraDeNegocioException("Informe o indice da alternativa escolhida");
-        }
+                                       @Valid @RequestBody RespostaRequest request) {
         return jogoService.responder(usuarioId, desafioId, request.indiceResposta());
     }
 

@@ -1,5 +1,6 @@
 package org.facens.grupo_6_gameeducator.web;
 
+import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
 import org.facens.grupo_6_gameeducator.domain.Missao;
@@ -37,7 +38,7 @@ public class MissaoController {
     @PostMapping
     public ResponseEntity<MissaoResponse> criar(@PathVariable Long cursoId,
                                                 @RequestHeader(HEADER_USUARIO) Long usuarioId,
-                                                @RequestBody NovaMissaoRequest request) {
+                                                @Valid @RequestBody NovaMissaoRequest request) {
         Missao missao = missaoService.criar(usuarioId, cursoId, request);
         URI local = URI.create("/api/cursos/" + cursoId + "/missoes/" + missao.getId());
         return ResponseEntity.created(local).body(MissaoResponse.de(missao));
