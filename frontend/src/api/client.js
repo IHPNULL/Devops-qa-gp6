@@ -88,3 +88,7 @@ export function responderPost(postId, conteudo) {
 export function buscarMedalhas(cursoId) {
   return request(`/api/cursos/${cursoId}/medalhas`)
 }
+
+export function buscarDesempenhoTurma(cursoId) {
+  return request(`/api/cursos/${cursoId}/turma/desempenho`)
+}
