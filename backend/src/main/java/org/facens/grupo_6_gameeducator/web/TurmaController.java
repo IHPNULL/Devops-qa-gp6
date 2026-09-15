@@ -26,7 +26,8 @@ public class TurmaController {
     @GetMapping("/desempenho")
     public List<DesempenhoAlunoResponse> desempenho(@PathVariable Long cursoId,
                                                      @RequestHeader(HEADER_USUARIO) Long usuarioId) {
-        // stub (RED do TDD)
-        return null;
+        return jogoService.desempenhoDaTurma(usuarioId, cursoId).stream()
+                .map(DesempenhoAlunoResponse::de)
+                .toList();
     }
 }

@@ -141,8 +141,25 @@ public class JogoService {
     /** Desempenho da turma no curso: XP, tentativas e acertos de cada aluno matriculado. So o professor responsavel ve. */
     @Transactional(readOnly = true)
     public List<DesempenhoAluno> desempenhoDaTurma(Long professorId, Long cursoId) {
-        // stub (RED do TDD)
-        return List.of();
+        Usuario professor = usuarioRepository.findById(professorId)
+                .orElseThrow(() -> RecursoNaoEncontradoException.de("Usuario", professorId));
+        Curso curso = cursoRepository.findById(cursoId)
+                .orElseThrow(() -> RecursoNaoEncontradoException.de("Curso", cursoId));
+        if (!curso.ehResponsavel(professor)) {
+            throw new AcessoNegadoException("Somente o professor responsavel acompanha a turma do curso " + cursoId);
+        }
+
+        return matriculaRepository.findByCursoId(cursoId).stream()
+                .map(Matricula::getAluno)
+                .map(aluno -> desempenhoDoAluno(aluno, cursoId))
+                .toList();
+    }
+
+    private DesempenhoAluno desempenhoDoAluno(Usuario aluno, Long cursoId) {
+        int xpTotal = xpNoCurso(aluno.getId(), cursoId);
+        List<Tentativa> tentativas = tentativaRepository.findByAlunoIdAndDesafio_Missao_Curso_Id(aluno.getId(), cursoId);
+        int acertos = (int) tentativas.stream().filter(Tentativa::isCorreta).count();
+        return new DesempenhoAluno(aluno, xpTotal, tentativas.size(), acertos);
     }
 
     private ProgressoAluno progressoDoAluno(Usuario aluno, Curso curso) {
