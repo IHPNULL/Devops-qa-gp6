@@ -46,6 +46,11 @@
             <optional>true</optional>
         </dependency>
         <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>3.1.1</version>
+        </dependency>
+        <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <scope>runtime</scope>
@@ -114,6 +119,8 @@
                         <exclude>**/Grupo6GameeducatorApplication.class</exclude>
                         <!-- seeder do profile dev: nao roda nos testes -->
                         <exclude>**/config/DadosDeExemplo.class</exclude>
+                        <!-- bootstrap do Swagger/OpenAPI: sem logica de negocio para cobrir -->
+                        <exclude>**/config/OpenApiConfig.class</exclude>
                     </excludes>
                 </configuration>
                 <executions>
