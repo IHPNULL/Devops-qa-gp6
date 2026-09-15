@@ -30,8 +30,9 @@ public class ForumController {
     @GetMapping("/api/cursos/{cursoId}/forum")
     public List<PostResponse> listar(@PathVariable Long cursoId,
                                      @RequestHeader(HEADER_USUARIO) Long usuarioId) {
-        // stub (RED do TDD)
-        return null;
+        return forumService.listarPosts(usuarioId, cursoId).stream()
+                .map(PostResponse::de)
+                .toList();
     }
 
     /** Publica um post proprio no forum do curso. */
@@ -39,8 +40,7 @@ public class ForumController {
     public PostResponse publicar(@PathVariable Long cursoId,
                                  @RequestHeader(HEADER_USUARIO) Long usuarioId,
                                  @RequestBody NovoPostRequest request) {
-        // stub (RED do TDD)
-        return null;
+        return PostResponse.de(forumService.publicar(usuarioId, cursoId, request.titulo(), request.conteudo()));
     }
 
     /** Responde um post existente do forum. */
@@ -48,7 +48,6 @@ public class ForumController {
     public RespostaPostResponse responder(@PathVariable Long postId,
                                           @RequestHeader(HEADER_USUARIO) Long usuarioId,
                                           @RequestBody NovaRespostaPostRequest request) {
-        // stub (RED do TDD)
-        return null;
+        return RespostaPostResponse.de(forumService.responder(usuarioId, postId, request.conteudo()));
     }
 }
