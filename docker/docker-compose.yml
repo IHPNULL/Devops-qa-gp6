@@ -16,7 +16,9 @@ services:
       retries: 10
 
   backend:
-    build: .
+    build:
+      context: ..
+      dockerfile: docker/backend.Dockerfile
     environment:
       SPRING_PROFILES_ACTIVE: postgres,dev
       DB_HOST: db
@@ -32,7 +34,8 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      context: ..
+      dockerfile: docker/frontend.Dockerfile
       args:
         VITE_API_BASE_URL: ""
     depends_on:

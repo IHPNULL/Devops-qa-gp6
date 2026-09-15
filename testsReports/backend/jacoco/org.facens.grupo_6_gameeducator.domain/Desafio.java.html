@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Desafio.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">grupo_6_gameeducator</a> &gt; <a href="index.source.html" class="el_package">org.facens.grupo_6_gameeducator.domain</a> &gt; <span class="el_source">Desafio.java</span></div><h1>Desafio.java</h1><pre class="source lang-java linenums">package org.facens.grupo_6_gameeducator.domain;
+
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OrderColumn;
+import jakarta.persistence.Table;
+import java.util.ArrayList;
+import java.util.List;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Entity
+@Table(name = &quot;desafio&quot;)
+@Getter
+@Setter
+@NoArgsConstructor
+public class Desafio {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, length = 1000)
+    private String enunciado;
+
+<span class="fc" id="L35">    @ElementCollection(fetch = FetchType.EAGER)</span>
+    @CollectionTable(name = &quot;desafio_alternativa&quot;, joinColumns = @JoinColumn(name = &quot;desafio_id&quot;))
+    @OrderColumn(name = &quot;ordem&quot;)
+    @Column(name = &quot;texto&quot;, nullable = false, length = 500)
+    private List&lt;String&gt; alternativas = new ArrayList&lt;&gt;();
+
+    /** Indice (base 0) da alternativa correta dentro de {@link #alternativas}. */
+    @Column(name = &quot;indice_resposta_correta&quot;, nullable = false)
+    private int indiceRespostaCorreta;
+
+    /** XP creditado ao aluno na primeira vez que ele acerta este desafio. */
+    @Column(nullable = false)
+    private int xp;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = &quot;missao_id&quot;, nullable = false)
+    private Missao missao;
+
+<span class="fc" id="L53">    public Desafio(String enunciado, List&lt;String&gt; alternativas, int indiceRespostaCorreta, int xp) {</span>
+<span class="fc" id="L54">        this.enunciado = enunciado;</span>
+<span class="fc" id="L55">        this.alternativas = new ArrayList&lt;&gt;(alternativas);</span>
+<span class="fc" id="L56">        this.indiceRespostaCorreta = indiceRespostaCorreta;</span>
+<span class="fc" id="L57">        this.xp = xp;</span>
+<span class="fc" id="L58">    }</span>
+
+    public boolean estaCorreta(int indiceResposta) {
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        return indiceResposta == indiceRespostaCorreta;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JogoController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">grupo_6_gameeducator</a> &gt; <a href="index.source.html" class="el_package">org.facens.grupo_6_gameeducator.web</a> &gt; <span class="el_source">JogoController.java</span></div><h1>JogoController.java</h1><pre class="source lang-java linenums">package org.facens.grupo_6_gameeducator.web;
+
+import java.util.List;
+import java.util.stream.IntStream;
+import org.facens.grupo_6_gameeducator.domain.ProgressoAluno;
+import org.facens.grupo_6_gameeducator.exception.RegraDeNegocioException;
+import org.facens.grupo_6_gameeducator.service.JogoService;
+import org.facens.grupo_6_gameeducator.service.dto.ResultadoResposta;
+import org.facens.grupo_6_gameeducator.web.dto.ProgressoResponse;
+import org.facens.grupo_6_gameeducator.web.dto.RankingItemResponse;
+import org.facens.grupo_6_gameeducator.web.dto.RespostaRequest;
+import org.facens.grupo_6_gameeducator.web.dto.TentativaResponse;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+/** US01 - endpoints do aluno jogando: responder desafios, ver progresso, historico e ranking. */
+@RestController
+@RequestMapping(&quot;/api&quot;)
+public class JogoController {
+
+    public static final String HEADER_USUARIO = MissaoController.HEADER_USUARIO;
+
+    private final JogoService jogoService;
+
+<span class="fc" id="L30">    public JogoController(JogoService jogoService) {</span>
+<span class="fc" id="L31">        this.jogoService = jogoService;</span>
+<span class="fc" id="L32">    }</span>
+
+    /** Aluno matriculado responde um desafio e recebe o resultado com o XP. */
+    @PostMapping(&quot;/desafios/{desafioId}/respostas&quot;)
+    public ResultadoResposta responder(@PathVariable Long desafioId,
+                                       @RequestHeader(HEADER_USUARIO) Long usuarioId,
+                                       @RequestBody RespostaRequest request) {
+<span class="fc bfc" id="L39" title="All 2 branches covered.">        if (request.indiceResposta() == null) {</span>
+<span class="fc" id="L40">            throw new RegraDeNegocioException(&quot;Informe o indice da alternativa escolhida&quot;);</span>
+        }
+<span class="fc" id="L42">        return jogoService.responder(usuarioId, desafioId, request.indiceResposta());</span>
+    }
+
+    /** Historico de tentativas do proprio aluno em um desafio. */
+    @GetMapping(&quot;/desafios/{desafioId}/tentativas&quot;)
+    public List&lt;TentativaResponse&gt; historico(@PathVariable Long desafioId,
+                                             @RequestHeader(HEADER_USUARIO) Long usuarioId) {
+<span class="fc" id="L49">        return jogoService.historico(usuarioId, desafioId).stream()</span>
+<span class="fc" id="L50">                .map(TentativaResponse::de)</span>
+<span class="fc" id="L51">                .toList();</span>
+    }
+
+    /** XP acumulado do proprio aluno no curso. */
+    @GetMapping(&quot;/cursos/{cursoId}/progresso&quot;)
+    public ProgressoResponse progresso(@PathVariable Long cursoId,
+                                       @RequestHeader(HEADER_USUARIO) Long usuarioId) {
+<span class="fc" id="L58">        return new ProgressoResponse(cursoId, usuarioId, jogoService.xpNoCurso(usuarioId, cursoId));</span>
+    }
+
+    /** Ranking de XP da turma, do maior para o menor. */
+    @GetMapping(&quot;/cursos/{cursoId}/ranking&quot;)
+    public List&lt;RankingItemResponse&gt; ranking(@PathVariable Long cursoId) {
+<span class="fc" id="L64">        List&lt;ProgressoAluno&gt; progressos = jogoService.ranking(cursoId);</span>
+<span class="fc" id="L65">        return IntStream.range(0, progressos.size())</span>
+<span class="fc" id="L66">                .mapToObj(i -&gt; RankingItemResponse.de(i + 1, progressos.get(i)))</span>
+<span class="fc" id="L67">                .toList();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

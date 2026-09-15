@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NotaService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">grupo_6_gameeducator</a> &gt; <a href="index.source.html" class="el_package">org.facens.grupo_6_gameeducator.service</a> &gt; <span class="el_source">NotaService.java</span></div><h1>NotaService.java</h1><pre class="source lang-java linenums">package org.facens.grupo_6_gameeducator.service;
+
+import java.math.BigDecimal;
+import java.util.List;
+import org.facens.grupo_6_gameeducator.domain.Curso;
+import org.facens.grupo_6_gameeducator.domain.Nota;
+import org.facens.grupo_6_gameeducator.domain.Usuario;
+import org.facens.grupo_6_gameeducator.exception.AcessoNegadoException;
+import org.facens.grupo_6_gameeducator.exception.RecursoNaoEncontradoException;
+import org.facens.grupo_6_gameeducator.exception.RegraDeNegocioException;
+import org.facens.grupo_6_gameeducator.repository.CursoRepository;
+import org.facens.grupo_6_gameeducator.repository.MatriculaRepository;
+import org.facens.grupo_6_gameeducator.repository.NotaRepository;
+import org.facens.grupo_6_gameeducator.repository.UsuarioRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Aba de notas: &quot;Como aluno, quero ver minhas notas de cada curso, para saber o meu progresso.&quot;
+ */
+@Service
+@Transactional
+public class NotaService {
+
+<span class="fc" id="L25">    private static final BigDecimal NOTA_MINIMA = BigDecimal.ZERO;</span>
+<span class="fc" id="L26">    private static final BigDecimal NOTA_MAXIMA = BigDecimal.TEN;</span>
+
+    private final UsuarioRepository usuarioRepository;
+    private final CursoRepository cursoRepository;
+    private final MatriculaRepository matriculaRepository;
+    private final NotaRepository notaRepository;
+
+    public NotaService(UsuarioRepository usuarioRepository,
+                       CursoRepository cursoRepository,
+                       MatriculaRepository matriculaRepository,
+<span class="fc" id="L36">                       NotaRepository notaRepository) {</span>
+<span class="fc" id="L37">        this.usuarioRepository = usuarioRepository;</span>
+<span class="fc" id="L38">        this.cursoRepository = cursoRepository;</span>
+<span class="fc" id="L39">        this.matriculaRepository = matriculaRepository;</span>
+<span class="fc" id="L40">        this.notaRepository = notaRepository;</span>
+<span class="fc" id="L41">    }</span>
+
+    /**
+     * Notas do proprio aluno naquele curso. Exige matricula: e o &quot;estou matriculado
+     * em um curso&quot; do BDD. Notas de outros cursos ou de outros alunos nunca entram aqui.
+     */
+    @Transactional(readOnly = true)
+    public List&lt;Nota&gt; minhasNotas(Long alunoId, Long cursoId) {
+<span class="fc" id="L49">        exigirMatricula(alunoId, cursoId);</span>
+<span class="fc" id="L50">        return notaRepository.findByAlunoIdAndCursoIdOrderByIdAsc(alunoId, cursoId);</span>
+    }
+
+    /** Professor responsavel lanca (ou atualiza) a nota de um aluno matriculado. */
+    public Nota lancar(Long professorId, Long cursoId, Long alunoId, String avaliacao, BigDecimal valor) {
+<span class="fc" id="L55">        Usuario professor = usuarioRepository.findById(professorId)</span>
+<span class="fc" id="L56">                .orElseThrow(() -&gt; RecursoNaoEncontradoException.de(&quot;Usuario&quot;, professorId));</span>
+<span class="fc" id="L57">        Curso curso = cursoRepository.findById(cursoId)</span>
+<span class="fc" id="L58">                .orElseThrow(() -&gt; RecursoNaoEncontradoException.de(&quot;Curso&quot;, cursoId));</span>
+<span class="fc bfc" id="L59" title="All 4 branches covered.">        if (!professor.isProfessor() || !curso.ehResponsavel(professor)) {</span>
+<span class="fc" id="L60">            throw new AcessoNegadoException(&quot;Somente o professor responsavel lanca notas no curso &quot; + cursoId);</span>
+        }
+<span class="fc bfc" id="L62" title="All 4 branches covered.">        if (avaliacao == null || avaliacao.isBlank()) {</span>
+<span class="fc" id="L63">            throw new RegraDeNegocioException(&quot;Informe a avaliacao (ex.: 'Prova 1')&quot;);</span>
+        }
+<span class="fc bfc" id="L65" title="All 6 branches covered.">        if (valor == null || valor.compareTo(NOTA_MINIMA) &lt; 0 || valor.compareTo(NOTA_MAXIMA) &gt; 0) {</span>
+<span class="fc" id="L66">            throw new RegraDeNegocioException(&quot;A nota precisa estar entre 0 e 10&quot;);</span>
+        }
+<span class="fc" id="L68">        Usuario aluno = usuarioRepository.findById(alunoId)</span>
+<span class="fc" id="L69">                .orElseThrow(() -&gt; RecursoNaoEncontradoException.de(&quot;Usuario&quot;, alunoId));</span>
+<span class="fc" id="L70">        exigirMatricula(alunoId, cursoId);</span>
+
+<span class="fc" id="L72">        return notaRepository.findByAlunoIdAndCursoIdAndAvaliacao(alunoId, cursoId, avaliacao)</span>
+<span class="fc" id="L73">                .map(existente -&gt; {</span>
+<span class="fc" id="L74">                    existente.setValor(valor);</span>
+<span class="fc" id="L75">                    return notaRepository.save(existente);</span>
+                })
+<span class="fc" id="L77">                .orElseGet(() -&gt; notaRepository.save(new Nota(aluno, curso, avaliacao, valor)));</span>
+    }
+
+    private void exigirMatricula(Long alunoId, Long cursoId) {
+<span class="fc bfc" id="L81" title="All 2 branches covered.">        if (!matriculaRepository.existsByCursoIdAndAlunoId(cursoId, alunoId)) {</span>
+<span class="fc" id="L82">            throw new AcessoNegadoException(&quot;Aluno &quot; + alunoId + &quot; nao esta matriculado no curso &quot; + cursoId);</span>
+        }
+<span class="fc" id="L84">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

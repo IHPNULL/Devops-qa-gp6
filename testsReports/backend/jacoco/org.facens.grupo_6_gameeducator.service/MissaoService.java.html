@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MissaoService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">grupo_6_gameeducator</a> &gt; <a href="index.source.html" class="el_package">org.facens.grupo_6_gameeducator.service</a> &gt; <span class="el_source">MissaoService.java</span></div><h1>MissaoService.java</h1><pre class="source lang-java linenums">package org.facens.grupo_6_gameeducator.service;
+
+import java.util.List;
+import org.facens.grupo_6_gameeducator.domain.Curso;
+import org.facens.grupo_6_gameeducator.domain.Desafio;
+import org.facens.grupo_6_gameeducator.domain.Missao;
+import org.facens.grupo_6_gameeducator.domain.Usuario;
+import org.facens.grupo_6_gameeducator.exception.AcessoNegadoException;
+import org.facens.grupo_6_gameeducator.exception.RecursoNaoEncontradoException;
+import org.facens.grupo_6_gameeducator.exception.RegraDeNegocioException;
+import org.facens.grupo_6_gameeducator.repository.CursoRepository;
+import org.facens.grupo_6_gameeducator.repository.MatriculaRepository;
+import org.facens.grupo_6_gameeducator.repository.MissaoRepository;
+import org.facens.grupo_6_gameeducator.repository.UsuarioRepository;
+import org.facens.grupo_6_gameeducator.service.dto.NovaMissaoRequest;
+import org.facens.grupo_6_gameeducator.service.dto.NovoDesafioRequest;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * US02 - Como professor, quero criar missoes com desafios dentro de um curso,
+ * para disponibilizar o conteudo do curso de forma gamificada.
+ */
+@Service
+@Transactional
+public class MissaoService {
+
+    private final UsuarioRepository usuarioRepository;
+    private final CursoRepository cursoRepository;
+    private final MissaoRepository missaoRepository;
+    private final MatriculaRepository matriculaRepository;
+
+    public MissaoService(UsuarioRepository usuarioRepository,
+                         CursoRepository cursoRepository,
+                         MissaoRepository missaoRepository,
+<span class="fc" id="L36">                         MatriculaRepository matriculaRepository) {</span>
+<span class="fc" id="L37">        this.usuarioRepository = usuarioRepository;</span>
+<span class="fc" id="L38">        this.cursoRepository = cursoRepository;</span>
+<span class="fc" id="L39">        this.missaoRepository = missaoRepository;</span>
+<span class="fc" id="L40">        this.matriculaRepository = matriculaRepository;</span>
+<span class="fc" id="L41">    }</span>
+
+    /** Cria a missao com seus desafios. So o professor responsavel pelo curso pode fazer isso. */
+    public Missao criar(Long professorId, Long cursoId, NovaMissaoRequest request) {
+<span class="fc" id="L45">        Usuario professor = usuarioRepository.findById(professorId)</span>
+<span class="fc" id="L46">                .orElseThrow(() -&gt; RecursoNaoEncontradoException.de(&quot;Usuario&quot;, professorId));</span>
+<span class="fc bfc" id="L47" title="All 2 branches covered.">        if (!professor.isProfessor()) {</span>
+<span class="fc" id="L48">            throw new AcessoNegadoException(&quot;Somente um professor pode criar missoes&quot;);</span>
+        }
+
+<span class="fc" id="L51">        Curso curso = cursoRepository.findById(cursoId)</span>
+<span class="fc" id="L52">                .orElseThrow(() -&gt; RecursoNaoEncontradoException.de(&quot;Curso&quot;, cursoId));</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        if (!curso.ehResponsavel(professor)) {</span>
+<span class="fc" id="L54">            throw new AcessoNegadoException(&quot;Professor nao e responsavel pelo curso &quot; + cursoId);</span>
+        }
+
+<span class="fc" id="L57">        validar(request);</span>
+
+<span class="fc" id="L59">        Missao missao = new Missao(request.titulo(), request.descricao(), curso);</span>
+<span class="fc bfc" id="L60" title="All 2 branches covered.">        for (NovoDesafioRequest novoDesafio : request.desafios()) {</span>
+<span class="fc" id="L61">            missao.adicionarDesafio(new Desafio(</span>
+<span class="fc" id="L62">                    novoDesafio.enunciado(),</span>
+<span class="fc" id="L63">                    novoDesafio.alternativas(),</span>
+<span class="fc" id="L64">                    novoDesafio.indiceRespostaCorreta(),</span>
+<span class="fc" id="L65">                    novoDesafio.xp()));</span>
+<span class="fc" id="L66">        }</span>
+<span class="fc" id="L67">        return missaoRepository.save(missao);</span>
+    }
+
+    /** Lista as missoes de um curso conforme o papel do usuario autenticado. */
+    @Transactional(readOnly = true)
+    public List&lt;Missao&gt; listarParaUsuario(Long usuarioId, Long cursoId) {
+<span class="fc" id="L73">        Usuario usuario = usuarioRepository.findById(usuarioId)</span>
+<span class="fc" id="L74">                .orElseThrow(() -&gt; RecursoNaoEncontradoException.de(&quot;Usuario&quot;, usuarioId));</span>
+<span class="fc bfc" id="L75" title="All 2 branches covered.">        return usuario.isProfessor()</span>
+<span class="fc" id="L76">                ? listarParaProfessor(usuarioId, cursoId)</span>
+<span class="fc" id="L77">                : listarParaAluno(usuarioId, cursoId);</span>
+    }
+
+    /** Missoes que o aluno enxerga em um curso. Exige matricula ativa. */
+    @Transactional(readOnly = true)
+    public List&lt;Missao&gt; listarParaAluno(Long alunoId, Long cursoId) {
+<span class="fc bfc" id="L83" title="All 2 branches covered.">        if (!matriculaRepository.existsByCursoIdAndAlunoId(cursoId, alunoId)) {</span>
+<span class="fc" id="L84">            throw new AcessoNegadoException(&quot;Aluno &quot; + alunoId + &quot; nao esta matriculado no curso &quot; + cursoId);</span>
+        }
+<span class="fc" id="L86">        return missaoRepository.findByCursoIdOrderByIdAsc(cursoId);</span>
+    }
+
+    /** Missoes de um curso sob a otica do professor responsavel. */
+    @Transactional(readOnly = true)
+    public List&lt;Missao&gt; listarParaProfessor(Long professorId, Long cursoId) {
+<span class="fc" id="L92">        Curso curso = cursoRepository.findById(cursoId)</span>
+<span class="fc" id="L93">                .orElseThrow(() -&gt; RecursoNaoEncontradoException.de(&quot;Curso&quot;, cursoId));</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">        if (!curso.getProfessor().getId().equals(professorId)) {</span>
+<span class="fc" id="L95">            throw new AcessoNegadoException(&quot;Professor nao e responsavel pelo curso &quot; + cursoId);</span>
+        }
+<span class="fc" id="L97">        return missaoRepository.findByCursoIdOrderByIdAsc(cursoId);</span>
+    }
+
+    private void validar(NovaMissaoRequest request) {
+<span class="fc bfc" id="L101" title="All 4 branches covered.">        if (request.titulo() == null || request.titulo().isBlank()) {</span>
+<span class="fc" id="L102">            throw new RegraDeNegocioException(&quot;A missao precisa de um titulo&quot;);</span>
+        }
+<span class="fc bfc" id="L104" title="All 4 branches covered.">        if (request.desafios() == null || request.desafios().isEmpty()) {</span>
+<span class="fc" id="L105">            throw new RegraDeNegocioException(&quot;A missao precisa de ao menos um desafio&quot;);</span>
+        }
+<span class="fc bfc" id="L107" title="All 2 branches covered.">        for (NovoDesafioRequest desafio : request.desafios()) {</span>
+<span class="fc bfc" id="L108" title="All 4 branches covered.">            if (desafio.enunciado() == null || desafio.enunciado().isBlank()) {</span>
+<span class="fc" id="L109">                throw new RegraDeNegocioException(&quot;Todo desafio precisa de um enunciado&quot;);</span>
+            }
+<span class="fc bfc" id="L111" title="All 4 branches covered.">            if (desafio.alternativas() == null || desafio.alternativas().size() &lt; 2) {</span>
+<span class="fc" id="L112">                throw new RegraDeNegocioException(&quot;Todo desafio precisa de ao menos duas alternativas&quot;);</span>
+            }
+<span class="fc bfc" id="L114" title="All 4 branches covered.">            if (desafio.indiceRespostaCorreta() &lt; 0 || desafio.indiceRespostaCorreta() &gt;= desafio.alternativas().size()) {</span>
+<span class="fc" id="L115">                throw new RegraDeNegocioException(&quot;A resposta correta precisa apontar para uma alternativa existente&quot;);</span>
+            }
+<span class="fc bfc" id="L117" title="All 2 branches covered.">            if (desafio.xp() &lt;= 0) {</span>
+<span class="fc" id="L118">                throw new RegraDeNegocioException(&quot;O XP do desafio precisa ser maior que zero&quot;);</span>
+            }
+<span class="fc" id="L120">        }</span>
+<span class="fc" id="L121">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
