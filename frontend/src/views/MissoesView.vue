@@ -6,7 +6,7 @@ const props = defineProps({
   cursoId: { type: Number, required: true },
 })
 
-const { missoes, xpTotal, resultados, carregar, responder } = useMissoes(props.cursoId)
+const { missoes, xpTotal, resultados, medalhasRecemConquistadas, carregar, responder } = useMissoes(props.cursoId)
 
 onMounted(carregar)
 </script>
@@ -14,6 +14,10 @@ onMounted(carregar)
 <template>
   <section>
     <p>XP total no curso: <strong data-testid="xp-total">{{ xpTotal }}</strong></p>
+
+    <p v-for="marco in medalhasRecemConquistadas" :key="marco" data-testid="nova-medalha">
+      Nova medalha: {{ marco }} XP
+    </p>
 
     <article v-for="missao in missoes" :key="missao.id">
       <h2>{{ missao.titulo }}</h2>

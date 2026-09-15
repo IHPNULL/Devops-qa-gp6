@@ -84,3 +84,7 @@ export function responderPost(postId, conteudo) {
     body: { conteudo },
   })
 }
+
+export function buscarMedalhas(cursoId) {
+  return request(`/api/cursos/${cursoId}/medalhas`)
+}
