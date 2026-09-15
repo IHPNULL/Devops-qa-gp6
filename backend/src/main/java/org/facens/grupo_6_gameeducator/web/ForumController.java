@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** Aba de foruns: aluno matriculado ou professor responsavel leem, publicam e respondem. */
 @RestController
+@RequestMapping("/api")
 public class ForumController {
 
     public static final String HEADER_USUARIO = MissaoController.HEADER_USUARIO;
@@ -27,7 +28,7 @@ public class ForumController {
     }
 
     /** Posts do forum do curso, do mais recente para o mais antigo. */
-    @GetMapping("/api/cursos/{cursoId}/forum")
+    @GetMapping("/cursos/{cursoId}/forum")
     public List<PostResponse> listar(@PathVariable Long cursoId,
                                      @RequestHeader(HEADER_USUARIO) Long usuarioId) {
         return forumService.listarPosts(usuarioId, cursoId).stream()
@@ -36,7 +37,7 @@ public class ForumController {
     }
 
     /** Publica um post proprio no forum do curso. */
-    @PostMapping("/api/cursos/{cursoId}/forum")
+    @PostMapping("/cursos/{cursoId}/forum")
     public PostResponse publicar(@PathVariable Long cursoId,
                                  @RequestHeader(HEADER_USUARIO) Long usuarioId,
                                  @RequestBody NovoPostRequest request) {
@@ -44,7 +45,7 @@ public class ForumController {
     }
 
     /** Responde um post existente do forum. */
-    @PostMapping("/api/forum/posts/{postId}/respostas")
+    @PostMapping("/forum/posts/{postId}/respostas")
     public RespostaPostResponse responder(@PathVariable Long postId,
                                           @RequestHeader(HEADER_USUARIO) Long usuarioId,
                                           @RequestBody NovaRespostaPostRequest request) {
