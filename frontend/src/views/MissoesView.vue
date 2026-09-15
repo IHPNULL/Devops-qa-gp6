@@ -1,26 +1,12 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { listarMissoes, buscarProgresso, enviarResposta } from '../api/client.js'
+import { onMounted } from 'vue'
+import { useMissoes } from '../composables/useMissoes.js'
 
 const props = defineProps({
   cursoId: { type: Number, required: true },
 })
 
-const missoes = ref([])
-const xpTotal = ref(0)
-const resultados = ref({})
-
-async function carregar() {
-  missoes.value = await listarMissoes(props.cursoId)
-  const progresso = await buscarProgresso(props.cursoId)
-  xpTotal.value = progresso.xpTotal
-}
-
-async function responder(desafioId, indiceResposta) {
-  const resultado = await enviarResposta(desafioId, indiceResposta)
-  resultados.value = { ...resultados.value, [desafioId]: resultado }
-  xpTotal.value = resultado.xpTotalNoCurso
-}
+const { missoes, xpTotal, resultados, carregar, responder } = useMissoes(props.cursoId)
 
 onMounted(carregar)
 </script>
