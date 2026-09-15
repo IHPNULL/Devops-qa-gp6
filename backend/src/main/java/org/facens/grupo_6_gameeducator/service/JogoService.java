@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.facens.grupo_6_gameeducator.domain.Curso;
 import org.facens.grupo_6_gameeducator.domain.Desafio;
+import org.facens.grupo_6_gameeducator.domain.Matricula;
 import org.facens.grupo_6_gameeducator.domain.Medalha;
 import org.facens.grupo_6_gameeducator.domain.ProgressoAluno;
 import org.facens.grupo_6_gameeducator.domain.Tentativa;
@@ -11,12 +12,14 @@ import org.facens.grupo_6_gameeducator.domain.Usuario;
 import org.facens.grupo_6_gameeducator.exception.AcessoNegadoException;
 import org.facens.grupo_6_gameeducator.exception.RecursoNaoEncontradoException;
 import org.facens.grupo_6_gameeducator.exception.RegraDeNegocioException;
+import org.facens.grupo_6_gameeducator.repository.CursoRepository;
 import org.facens.grupo_6_gameeducator.repository.DesafioRepository;
 import org.facens.grupo_6_gameeducator.repository.MatriculaRepository;
 import org.facens.grupo_6_gameeducator.repository.MedalhaRepository;
 import org.facens.grupo_6_gameeducator.repository.ProgressoAlunoRepository;
 import org.facens.grupo_6_gameeducator.repository.TentativaRepository;
 import org.facens.grupo_6_gameeducator.repository.UsuarioRepository;
+import org.facens.grupo_6_gameeducator.service.dto.DesempenhoAluno;
 import org.facens.grupo_6_gameeducator.service.dto.ResultadoResposta;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +36,7 @@ public class JogoService {
     private static final List<Integer> MARCOS_XP = List.of(50, 100, 250, 500);
 
     private final UsuarioRepository usuarioRepository;
+    private final CursoRepository cursoRepository;
     private final DesafioRepository desafioRepository;
     private final MatriculaRepository matriculaRepository;
     private final TentativaRepository tentativaRepository;
@@ -40,12 +44,14 @@ public class JogoService {
     private final MedalhaRepository medalhaRepository;
 
     public JogoService(UsuarioRepository usuarioRepository,
+                       CursoRepository cursoRepository,
                        DesafioRepository desafioRepository,
                        MatriculaRepository matriculaRepository,
                        TentativaRepository tentativaRepository,
                        ProgressoAlunoRepository progressoAlunoRepository,
                        MedalhaRepository medalhaRepository) {
         this.usuarioRepository = usuarioRepository;
+        this.cursoRepository = cursoRepository;
         this.desafioRepository = desafioRepository;
         this.matriculaRepository = matriculaRepository;
         this.tentativaRepository = tentativaRepository;
@@ -130,6 +136,30 @@ public class JogoService {
     @Transactional(readOnly = true)
     public List<Medalha> medalhasDoAluno(Long alunoId, Long cursoId) {
         return medalhaRepository.findByAlunoIdAndCursoIdOrderByMarcoXpAsc(alunoId, cursoId);
+    }
+
+    /** Desempenho da turma no curso: XP, tentativas e acertos de cada aluno matriculado. So o professor responsavel ve. */
+    @Transactional(readOnly = true)
+    public List<DesempenhoAluno> desempenhoDaTurma(Long professorId, Long cursoId) {
+        Usuario professor = usuarioRepository.findById(professorId)
+                .orElseThrow(() -> RecursoNaoEncontradoException.de("Usuario", professorId));
+        Curso curso = cursoRepository.findById(cursoId)
+                .orElseThrow(() -> RecursoNaoEncontradoException.de("Curso", cursoId));
+        if (!curso.ehResponsavel(professor)) {
+            throw new AcessoNegadoException("Somente o professor responsavel acompanha a turma do curso " + cursoId);
+        }
+
+        return matriculaRepository.findByCursoId(cursoId).stream()
+                .map(Matricula::getAluno)
+                .map(aluno -> desempenhoDoAluno(aluno, cursoId))
+                .toList();
+    }
+
+    private DesempenhoAluno desempenhoDoAluno(Usuario aluno, Long cursoId) {
+        int xpTotal = xpNoCurso(aluno.getId(), cursoId);
+        List<Tentativa> tentativas = tentativaRepository.findByAlunoIdAndDesafio_Missao_Curso_Id(aluno.getId(), cursoId);
+        int acertos = (int) tentativas.stream().filter(Tentativa::isCorreta).count();
+        return new DesempenhoAluno(aluno, xpTotal, tentativas.size(), acertos);
     }
 
     private ProgressoAluno progressoDoAluno(Usuario aluno, Curso curso) {
