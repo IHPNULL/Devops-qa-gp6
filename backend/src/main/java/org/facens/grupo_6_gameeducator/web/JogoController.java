@@ -6,6 +6,7 @@ import org.facens.grupo_6_gameeducator.domain.ProgressoAluno;
 import org.facens.grupo_6_gameeducator.exception.RegraDeNegocioException;
 import org.facens.grupo_6_gameeducator.service.JogoService;
 import org.facens.grupo_6_gameeducator.service.dto.ResultadoResposta;
+import org.facens.grupo_6_gameeducator.web.dto.MedalhaResponse;
 import org.facens.grupo_6_gameeducator.web.dto.ProgressoResponse;
 import org.facens.grupo_6_gameeducator.web.dto.RankingItemResponse;
 import org.facens.grupo_6_gameeducator.web.dto.RespostaRequest;
@@ -64,6 +65,15 @@ public class JogoController {
         List<ProgressoAluno> progressos = jogoService.ranking(cursoId);
         return IntStream.range(0, progressos.size())
                 .mapToObj(i -> RankingItemResponse.de(i + 1, progressos.get(i)))
+                .toList();
+    }
+
+    /** Medalhas conquistadas pelo proprio aluno no curso. */
+    @GetMapping("/cursos/{cursoId}/medalhas")
+    public List<MedalhaResponse> medalhas(@PathVariable Long cursoId,
+                                          @RequestHeader(HEADER_USUARIO) Long usuarioId) {
+        return jogoService.medalhasDoAluno(usuarioId, cursoId).stream()
+                .map(MedalhaResponse::de)
                 .toList();
     }
 }

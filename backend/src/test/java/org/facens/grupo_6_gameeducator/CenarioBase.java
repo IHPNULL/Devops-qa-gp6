@@ -8,6 +8,7 @@ import org.facens.grupo_6_gameeducator.domain.Papel;
 import org.facens.grupo_6_gameeducator.domain.Usuario;
 import org.facens.grupo_6_gameeducator.repository.CursoRepository;
 import org.facens.grupo_6_gameeducator.repository.MatriculaRepository;
+import org.facens.grupo_6_gameeducator.repository.MedalhaRepository;
 import org.facens.grupo_6_gameeducator.repository.MissaoRepository;
 import org.facens.grupo_6_gameeducator.repository.NotaRepository;
 import org.facens.grupo_6_gameeducator.repository.PostRepository;
@@ -46,6 +47,8 @@ abstract class CenarioBase {
     protected TentativaRepository tentativaRepository;
     @Autowired
     protected ProgressoAlunoRepository progressoAlunoRepository;
+    @Autowired
+    protected MedalhaRepository medalhaRepository;
     @Autowired
     protected NotaRepository notaRepository;
     @Autowired
