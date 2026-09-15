@@ -46,7 +46,14 @@ public class ForumService {
     @Transactional(readOnly = true)
     public List<Post> listarPosts(Long usuarioId, Long cursoId) {
         exigirAcessoAoCurso(usuarioId, cursoId);
-        return postRepository.findByCursoIdOrderByDataHoraDescIdDesc(cursoId);
+        List<Post> posts = postRepository.findByCursoIdOrderByDataHoraDescIdDesc(cursoId);
+        // Inicializa autor e respostas (LAZY) enquanto a sessao ainda esta aberta: o controller
+        // monta o PostResponse fora da transacao, onde eles nao poderiam mais ser carregados.
+        posts.forEach(post -> {
+            post.getAutor().getNome();
+            post.getRespostas().forEach(resposta -> resposta.getAutor().getNome());
+        });
+        return posts;
     }
 
     /** Publica um post proprio no forum do curso. */

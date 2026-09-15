@@ -1,0 +1,13 @@
+# Override de automation/docker-compose.automation.yml sobre docker/docker-compose.yml:
+# sobe so backend + frontend (sem o servico "db"/"pgadmin"), com o backend no profile
+# "automation" - H2 em memoria, populado com dados fixos e mocados (ver
+# backend/src/main/java/.../config/AutomationSeedData.java). Usado pela suite Cucumber
+# em automation/api-tests e automation/ui-tests, nunca contra dados reais/producao.
+#
+# Uso (a partir da pasta automation/):
+#   docker compose -f ../docker/docker-compose.yml -f docker-compose.automation.yml up -d backend frontend
+services:
+  backend:
+    environment:
+      SPRING_PROFILES_ACTIVE: automation
+    depends_on: !reset []

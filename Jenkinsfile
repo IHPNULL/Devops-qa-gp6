@@ -94,6 +94,41 @@ pipeline {
             }
         }
 
+        stage('Automation: Cucumber Tests (mocked DB)') {
+            steps {
+                dir('automation') {
+                    sh 'docker compose -f ../docker/docker-compose.yml -f docker-compose.automation.yml up -d backend frontend'
+                    sh '''
+                        for i in $(seq 1 30); do
+                            curl -sf http://localhost:8080/v3/api-docs > /dev/null && break
+                            sleep 2
+                        done
+                        curl -sf http://localhost:8080/v3/api-docs > /dev/null
+                        curl -sfI http://localhost:8081/ > /dev/null
+                    '''
+                    dir('api-tests') {
+                        sh './mvnw -B test'
+                    }
+                    dir('ui-tests') {
+                        sh 'npm ci'
+                        sh 'npx playwright install --with-deps chromium'
+                        sh 'npm test'
+                    }
+                }
+            }
+            post {
+                always {
+                    dir('automation') {
+                        sh 'docker compose -f ../docker/docker-compose.yml -f docker-compose.automation.yml logs backend || true'
+                        sh 'docker compose -f ../docker/docker-compose.yml -f docker-compose.automation.yml down -v || true'
+                    }
+                    junit 'automation/api-tests/target/surefire-reports/*.xml'
+                    junit 'automation/ui-tests/reports/junit-report.xml'
+                    archiveArtifacts artifacts: 'automation/api-tests/target/cucumber-report/**, automation/ui-tests/reports/**', allowEmptyArchive: true
+                }
+            }
+        }
+
         stage('Publish') {
             when {
                 branch 'main'

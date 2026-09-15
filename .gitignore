@@ -35,3 +35,7 @@ build/
 ### Frontend (Vue/Vite) ###
 frontend/node_modules/
 frontend/dist/
+
+### Automation (Cucumber) ###
+automation/ui-tests/node_modules/
+automation/ui-tests/reports/
