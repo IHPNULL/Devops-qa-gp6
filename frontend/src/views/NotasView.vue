@@ -1,16 +1,12 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { listarNotas } from '../api/client.js'
+import { onMounted } from 'vue'
+import { useNotas } from '../composables/useNotas.js'
 
 const props = defineProps({
   cursoId: { type: Number, required: true },
 })
 
-const notas = ref([])
-
-async function carregar() {
-  notas.value = await listarNotas(props.cursoId)
-}
+const { notas, carregar } = useNotas(props.cursoId)
 
 onMounted(carregar)
 </script>
