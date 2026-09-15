@@ -1,16 +1,12 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { buscarDesempenhoTurma } from '../api/client.js'
+import { onMounted } from 'vue'
+import { useDesempenhoTurma } from '../composables/useDesempenhoTurma.js'
 
 const props = defineProps({
   cursoId: { type: Number, required: true },
 })
 
-const desempenho = ref([])
-
-async function carregar() {
-  desempenho.value = await buscarDesempenhoTurma(props.cursoId)
-}
+const { desempenho, carregar } = useDesempenhoTurma(props.cursoId)
 
 onMounted(carregar)
 </script>
