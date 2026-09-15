@@ -136,6 +136,26 @@ class MissaoControllerTest {
     }
 
     @Test
+    @DisplayName("400 lista todos os campos invalidos de uma vez (Bean Validation)")
+    void deveListarTodosOsCamposInvalidosDeUmaVez() throws Exception {
+        mockMvc.perform(post("/api/cursos/{cursoId}/missoes", CURSO_ID)
+                        .header(HEADER, PROFESSOR_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"titulo": "", "descricao": "sem conteudo", "desafios": []}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(result -> {
+                    String mensagem = result.getResponse().getContentAsString();
+                    org.junit.jupiter.api.Assertions.assertTrue(mensagem.contains("titulo"),
+                            "deveria citar o campo titulo: " + mensagem);
+                    org.junit.jupiter.api.Assertions.assertTrue(mensagem.contains("desafios"),
+                            "deveria citar o campo desafios: " + mensagem);
+                });
+    }
+
+    @Test
     @DisplayName("400 quando falta o header de usuario autenticado")
     void deveExigirUsuarioAutenticado() throws Exception {
         mockMvc.perform(post("/api/cursos/{cursoId}/missoes", CURSO_ID)
