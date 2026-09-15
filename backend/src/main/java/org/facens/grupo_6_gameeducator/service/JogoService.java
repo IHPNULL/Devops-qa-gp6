@@ -151,6 +151,9 @@ public class JogoService {
 
         return matriculaRepository.findByCursoId(cursoId).stream()
                 .map(Matricula::getAluno)
+                // aluno vem de uma associacao LAZY: forca a inicializacao aqui, enquanto a sessao
+                // ainda esta aberta, pois o controller le aluno.getNome() ja fora da transacao.
+                .peek(Usuario::getNome)
                 .map(aluno -> desempenhoDoAluno(aluno, cursoId))
                 .toList();
     }
