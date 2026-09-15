@@ -1,5 +1,6 @@
 package org.facens.grupo_6_gameeducator.service;
 
+import java.util.ArrayList;
 import java.util.List;
 import org.facens.grupo_6_gameeducator.domain.Curso;
 import org.facens.grupo_6_gameeducator.domain.Desafio;
@@ -79,12 +80,30 @@ public class JogoService {
         int xpGanho = (correta && !jaTinhaAcertado) ? desafio.getXp() : 0;
 
         ProgressoAluno progresso = progressoDoAluno(aluno, curso);
+        int xpAntes = progresso.getXpTotal();
         progresso.creditarXp(xpGanho);
         progressoAlunoRepository.save(progresso);
+        int xpDepois = progresso.getXpTotal();
 
         tentativaRepository.save(new Tentativa(aluno, desafio, indiceResposta, correta, xpGanho));
 
-        return new ResultadoResposta(correta, xpGanho, progresso.getXpTotal());
+        List<Integer> medalhasConquistadas = concederMedalhas(aluno, curso, xpAntes, xpDepois);
+
+        return new ResultadoResposta(correta, xpGanho, xpDepois, medalhasConquistadas);
+    }
+
+    /** Concede uma medalha para cada marco de XP cruzado entre xpAntes (exclusive) e xpDepois (inclusive). */
+    private List<Integer> concederMedalhas(Usuario aluno, Curso curso, int xpAntes, int xpDepois) {
+        List<Integer> conquistadas = new ArrayList<>();
+        for (int marco : MARCOS_XP) {
+            boolean cruzouOMarco = xpAntes < marco && xpDepois >= marco;
+            if (cruzouOMarco
+                    && !medalhaRepository.existsByAlunoIdAndCursoIdAndMarcoXp(aluno.getId(), curso.getId(), marco)) {
+                medalhaRepository.save(new Medalha(aluno, curso, marco));
+                conquistadas.add(marco);
+            }
+        }
+        return conquistadas;
     }
 
     /** XP acumulado do aluno em um curso. Zero enquanto ele nao pontuou. */
@@ -110,8 +129,7 @@ public class JogoService {
     /** Medalhas conquistadas pelo aluno naquele curso, do menor para o maior marco. */
     @Transactional(readOnly = true)
     public List<Medalha> medalhasDoAluno(Long alunoId, Long cursoId) {
-        // stub (RED do TDD)
-        return List.of();
+        return medalhaRepository.findByAlunoIdAndCursoIdOrderByMarcoXpAsc(alunoId, cursoId);
     }
 
     private ProgressoAluno progressoDoAluno(Usuario aluno, Curso curso) {
