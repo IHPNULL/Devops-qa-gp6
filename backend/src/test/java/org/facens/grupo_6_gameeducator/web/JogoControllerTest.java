@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.List;
 import org.facens.grupo_6_gameeducator.domain.Curso;
 import org.facens.grupo_6_gameeducator.domain.Desafio;
+import org.facens.grupo_6_gameeducator.domain.Medalha;
 import org.facens.grupo_6_gameeducator.domain.Missao;
 import org.facens.grupo_6_gameeducator.domain.Papel;
 import org.facens.grupo_6_gameeducator.domain.ProgressoAluno;
@@ -171,6 +172,20 @@ class JogoControllerTest {
                 .andExpect(jsonPath("$[0].xpTotal").value(30))
                 .andExpect(jsonPath("$[1].posicao").value(2))
                 .andExpect(jsonPath("$[1].nomeAluno").value("Daniela"));
+    }
+
+    @Test
+    @DisplayName("GET medalhas -> marcos de XP conquistados pelo aluno no curso")
+    void deveRetornarMedalhasDoAluno() throws Exception {
+        Usuario aluno = aluno();
+        Curso curso = curso();
+        Medalha medalha = new Medalha(aluno, curso, 50);
+        when(jogoService.medalhasDoAluno(ALUNO_ID, CURSO_ID)).thenReturn(List.of(medalha));
+
+        mockMvc.perform(get("/api/cursos/{cursoId}/medalhas", CURSO_ID).header(HEADER, ALUNO_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].marcoXp").value(50));
     }
 
     private static Usuario aluno() {

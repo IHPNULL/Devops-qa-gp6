@@ -1,8 +1,10 @@
 package org.facens.grupo_6_gameeducator.service;
 
+import java.util.ArrayList;
 import java.util.List;
 import org.facens.grupo_6_gameeducator.domain.Curso;
 import org.facens.grupo_6_gameeducator.domain.Desafio;
+import org.facens.grupo_6_gameeducator.domain.Medalha;
 import org.facens.grupo_6_gameeducator.domain.ProgressoAluno;
 import org.facens.grupo_6_gameeducator.domain.Tentativa;
 import org.facens.grupo_6_gameeducator.domain.Usuario;
@@ -11,6 +13,7 @@ import org.facens.grupo_6_gameeducator.exception.RecursoNaoEncontradoException;
 import org.facens.grupo_6_gameeducator.exception.RegraDeNegocioException;
 import org.facens.grupo_6_gameeducator.repository.DesafioRepository;
 import org.facens.grupo_6_gameeducator.repository.MatriculaRepository;
+import org.facens.grupo_6_gameeducator.repository.MedalhaRepository;
 import org.facens.grupo_6_gameeducator.repository.ProgressoAlunoRepository;
 import org.facens.grupo_6_gameeducator.repository.TentativaRepository;
 import org.facens.grupo_6_gameeducator.repository.UsuarioRepository;
@@ -26,22 +29,28 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class JogoService {
 
+    /** Marcos de XP que concedem uma medalha ao aluno, no curso. */
+    private static final List<Integer> MARCOS_XP = List.of(50, 100, 250, 500);
+
     private final UsuarioRepository usuarioRepository;
     private final DesafioRepository desafioRepository;
     private final MatriculaRepository matriculaRepository;
     private final TentativaRepository tentativaRepository;
     private final ProgressoAlunoRepository progressoAlunoRepository;
+    private final MedalhaRepository medalhaRepository;
 
     public JogoService(UsuarioRepository usuarioRepository,
                        DesafioRepository desafioRepository,
                        MatriculaRepository matriculaRepository,
                        TentativaRepository tentativaRepository,
-                       ProgressoAlunoRepository progressoAlunoRepository) {
+                       ProgressoAlunoRepository progressoAlunoRepository,
+                       MedalhaRepository medalhaRepository) {
         this.usuarioRepository = usuarioRepository;
         this.desafioRepository = desafioRepository;
         this.matriculaRepository = matriculaRepository;
         this.tentativaRepository = tentativaRepository;
         this.progressoAlunoRepository = progressoAlunoRepository;
+        this.medalhaRepository = medalhaRepository;
     }
 
     /**
@@ -71,12 +80,30 @@ public class JogoService {
         int xpGanho = (correta && !jaTinhaAcertado) ? desafio.getXp() : 0;
 
         ProgressoAluno progresso = progressoDoAluno(aluno, curso);
+        int xpAntes = progresso.getXpTotal();
         progresso.creditarXp(xpGanho);
         progressoAlunoRepository.save(progresso);
+        int xpDepois = progresso.getXpTotal();
 
         tentativaRepository.save(new Tentativa(aluno, desafio, indiceResposta, correta, xpGanho));
 
-        return new ResultadoResposta(correta, xpGanho, progresso.getXpTotal());
+        List<Integer> medalhasConquistadas = concederMedalhas(aluno, curso, xpAntes, xpDepois);
+
+        return new ResultadoResposta(correta, xpGanho, xpDepois, medalhasConquistadas);
+    }
+
+    /** Concede uma medalha para cada marco de XP cruzado entre xpAntes (exclusive) e xpDepois (inclusive). */
+    private List<Integer> concederMedalhas(Usuario aluno, Curso curso, int xpAntes, int xpDepois) {
+        List<Integer> conquistadas = new ArrayList<>();
+        for (int marco : MARCOS_XP) {
+            boolean cruzouOMarco = xpAntes < marco && xpDepois >= marco;
+            if (cruzouOMarco
+                    && !medalhaRepository.existsByAlunoIdAndCursoIdAndMarcoXp(aluno.getId(), curso.getId(), marco)) {
+                medalhaRepository.save(new Medalha(aluno, curso, marco));
+                conquistadas.add(marco);
+            }
+        }
+        return conquistadas;
     }
 
     /** XP acumulado do aluno em um curso. Zero enquanto ele nao pontuou. */
@@ -97,6 +124,12 @@ public class JogoService {
     @Transactional(readOnly = true)
     public List<ProgressoAluno> ranking(Long cursoId) {
         return progressoAlunoRepository.findByCursoIdOrderByXpTotalDesc(cursoId);
+    }
+
+    /** Medalhas conquistadas pelo aluno naquele curso, do menor para o maior marco. */
+    @Transactional(readOnly = true)
+    public List<Medalha> medalhasDoAluno(Long alunoId, Long cursoId) {
+        return medalhaRepository.findByAlunoIdAndCursoIdOrderByMarcoXpAsc(alunoId, cursoId);
     }
 
     private ProgressoAluno progressoDoAluno(Usuario aluno, Curso curso) {
