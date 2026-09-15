@@ -1,0 +1,19 @@
+GameEducator - snapshot de evidencia de testes
+Gerado em 2026-09-15 a partir de HEAD do branch restructure/project-layout.
+
+backend/ (./mvnw clean verify)
+  Tests run: 73, Failures: 0, Errors: 0
+  JaCoCo (BUNDLE): Instructions 100% (0 de 1389 perdidas), Branches 100% (0 de 96 perdidas)
+  Gate configurado no pom.xml: LINE >= 95%, BRANCH >= 90% - ambos atingidos com folga (100%).
+  backend/jacoco/index.html      - relatorio HTML completo
+  backend/surefire-reports/*.txt - saida bruta de cada classe de teste
+
+frontend/ (npm run test:coverage)
+  Test Files: 3 passed, Tests: 7 passed
+  Cobertura (v8): 77.46% statements, 70.49% branches, 79.71% lines (ver detalhe por arquivo)
+  frontend/test-results.txt   - saida do vitest (testes + tabela de cobertura)
+  frontend/coverage/index.html - relatorio HTML de cobertura
+
+Para regenerar:
+  cd backend && ./mvnw clean verify   (copia manual de target/site/jacoco e target/surefire-reports)
+  cd frontend && npm run test:coverage (grava direto em ../testsReports/frontend/coverage)

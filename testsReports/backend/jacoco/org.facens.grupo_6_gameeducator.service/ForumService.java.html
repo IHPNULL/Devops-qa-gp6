@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ForumService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">grupo_6_gameeducator</a> &gt; <a href="index.source.html" class="el_package">org.facens.grupo_6_gameeducator.service</a> &gt; <span class="el_source">ForumService.java</span></div><h1>ForumService.java</h1><pre class="source lang-java linenums">package org.facens.grupo_6_gameeducator.service;
+
+import java.util.List;
+import org.facens.grupo_6_gameeducator.domain.Curso;
+import org.facens.grupo_6_gameeducator.domain.Post;
+import org.facens.grupo_6_gameeducator.domain.RespostaPost;
+import org.facens.grupo_6_gameeducator.domain.Usuario;
+import org.facens.grupo_6_gameeducator.exception.AcessoNegadoException;
+import org.facens.grupo_6_gameeducator.exception.RecursoNaoEncontradoException;
+import org.facens.grupo_6_gameeducator.exception.RegraDeNegocioException;
+import org.facens.grupo_6_gameeducator.repository.CursoRepository;
+import org.facens.grupo_6_gameeducator.repository.MatriculaRepository;
+import org.facens.grupo_6_gameeducator.repository.PostRepository;
+import org.facens.grupo_6_gameeducator.repository.RespostaPostRepository;
+import org.facens.grupo_6_gameeducator.repository.UsuarioRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Aba de foruns: &quot;Como aluno, quero ter acesso aos foruns, para interagir e ajudar.&quot;
+ * Vejo os posts, respondo, sou respondido e publico o meu proprio post.
+ */
+@Service
+@Transactional
+public class ForumService {
+
+    private final UsuarioRepository usuarioRepository;
+    private final CursoRepository cursoRepository;
+    private final MatriculaRepository matriculaRepository;
+    private final PostRepository postRepository;
+    private final RespostaPostRepository respostaPostRepository;
+
+    public ForumService(UsuarioRepository usuarioRepository,
+                        CursoRepository cursoRepository,
+                        MatriculaRepository matriculaRepository,
+                        PostRepository postRepository,
+<span class="fc" id="L37">                        RespostaPostRepository respostaPostRepository) {</span>
+<span class="fc" id="L38">        this.usuarioRepository = usuarioRepository;</span>
+<span class="fc" id="L39">        this.cursoRepository = cursoRepository;</span>
+<span class="fc" id="L40">        this.matriculaRepository = matriculaRepository;</span>
+<span class="fc" id="L41">        this.postRepository = postRepository;</span>
+<span class="fc" id="L42">        this.respostaPostRepository = respostaPostRepository;</span>
+<span class="fc" id="L43">    }</span>
+
+    /** Posts do forum do curso, do mais recente para o mais antigo. */
+    @Transactional(readOnly = true)
+    public List&lt;Post&gt; listarPosts(Long usuarioId, Long cursoId) {
+<span class="fc" id="L48">        exigirAcessoAoCurso(usuarioId, cursoId);</span>
+<span class="fc" id="L49">        return postRepository.findByCursoIdOrderByDataHoraDescIdDesc(cursoId);</span>
+    }
+
+    /** Publica um post proprio no forum do curso. */
+    public Post publicar(Long usuarioId, Long cursoId, String titulo, String conteudo) {
+<span class="fc" id="L54">        Acesso acesso = exigirAcessoAoCurso(usuarioId, cursoId);</span>
+<span class="fc bfc" id="L55" title="All 4 branches covered.">        if (titulo == null || titulo.isBlank()) {</span>
+<span class="fc" id="L56">            throw new RegraDeNegocioException(&quot;O post precisa de um titulo&quot;);</span>
+        }
+<span class="fc bfc" id="L58" title="All 4 branches covered.">        if (conteudo == null || conteudo.isBlank()) {</span>
+<span class="fc" id="L59">            throw new RegraDeNegocioException(&quot;O post precisa de um conteudo&quot;);</span>
+        }
+<span class="fc" id="L61">        return postRepository.save(new Post(acesso.curso(), acesso.usuario(), titulo, conteudo));</span>
+    }
+
+    /** Responde um post: e assim que o aluno responde e e respondido. */
+    public RespostaPost responder(Long usuarioId, Long postId, String conteudo) {
+<span class="fc" id="L66">        Post post = postRepository.findById(postId)</span>
+<span class="fc" id="L67">                .orElseThrow(() -&gt; RecursoNaoEncontradoException.de(&quot;Post&quot;, postId));</span>
+<span class="fc" id="L68">        Acesso acesso = exigirAcessoAoCurso(usuarioId, post.getCurso().getId());</span>
+<span class="fc bfc" id="L69" title="All 4 branches covered.">        if (conteudo == null || conteudo.isBlank()) {</span>
+<span class="fc" id="L70">            throw new RegraDeNegocioException(&quot;A resposta precisa de um conteudo&quot;);</span>
+        }
+<span class="fc" id="L72">        RespostaPost resposta = new RespostaPost(acesso.usuario(), conteudo);</span>
+<span class="fc" id="L73">        post.adicionarResposta(resposta);</span>
+<span class="fc" id="L74">        return respostaPostRepository.save(resposta);</span>
+    }
+
+    @Transactional(readOnly = true)
+    public List&lt;RespostaPost&gt; respostasDo(Long postId) {
+<span class="fc" id="L79">        return respostaPostRepository.findByPostIdOrderByIdAsc(postId);</span>
+    }
+
+    /** Quem acessou o forum e em qual curso. */
+<span class="fc" id="L83">    private record Acesso(Usuario usuario, Curso curso) {</span>
+    }
+
+    /** Acesso ao forum: aluno matriculado ou o professor responsavel pelo curso. */
+    private Acesso exigirAcessoAoCurso(Long usuarioId, Long cursoId) {
+<span class="fc" id="L88">        Usuario usuario = usuarioRepository.findById(usuarioId)</span>
+<span class="fc" id="L89">                .orElseThrow(() -&gt; RecursoNaoEncontradoException.de(&quot;Usuario&quot;, usuarioId));</span>
+<span class="fc" id="L90">        Curso curso = cursoRepository.findById(cursoId)</span>
+<span class="fc" id="L91">                .orElseThrow(() -&gt; RecursoNaoEncontradoException.de(&quot;Curso&quot;, cursoId));</span>
+<span class="fc bfc" id="L92" title="All 4 branches covered.">        if (matriculaRepository.existsByCursoIdAndAlunoId(cursoId, usuarioId) || curso.ehResponsavel(usuario)) {</span>
+<span class="fc" id="L93">            return new Acesso(usuario, curso);</span>
+        }
+<span class="fc" id="L95">        throw new AcessoNegadoException(</span>
+                &quot;Usuario &quot; + usuarioId + &quot; nao tem acesso ao forum do curso &quot; + cursoId);
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

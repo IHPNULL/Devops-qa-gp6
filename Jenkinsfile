@@ -18,16 +18,18 @@ pipeline {
     stages {
         stage('Backend: Build & Test') {
             steps {
-                sh './mvnw -B clean verify'
+                dir('backend') {
+                    sh './mvnw -B clean verify'
+                }
             }
             post {
                 always {
-                    junit 'target/surefire-reports/*.xml'
-                    archiveArtifacts artifacts: 'target/site/jacoco/**', allowEmptyArchive: true
+                    junit 'backend/target/surefire-reports/*.xml'
+                    archiveArtifacts artifacts: 'backend/target/site/jacoco/**', allowEmptyArchive: true
                     jacoco(
-                        execPattern: 'target/jacoco.exec',
-                        classPattern: 'target/classes',
-                        sourcePattern: 'src/main/java'
+                        execPattern: 'backend/target/jacoco.exec',
+                        classPattern: 'backend/target/classes',
+                        sourcePattern: 'backend/src/main/java'
                     )
                 }
             }
@@ -35,7 +37,7 @@ pipeline {
 
         stage('Backend: Docker Build') {
             steps {
-                sh "docker build -t gameeducator-backend:${env.GIT_COMMIT} ."
+                sh "docker build -f docker/backend.Dockerfile -t gameeducator-backend:${env.GIT_COMMIT} ."
                 script {
                     if (env.BRANCH_NAME == 'main') {
                         sh "docker tag gameeducator-backend:${env.GIT_COMMIT} gameeducator-backend:latest"
@@ -63,7 +65,7 @@ pipeline {
 
         stage('Frontend: Docker Build') {
             steps {
-                sh "docker build -t gameeducator-frontend:${env.GIT_COMMIT} ./frontend"
+                sh "docker build -f docker/frontend.Dockerfile -t gameeducator-frontend:${env.GIT_COMMIT} ."
                 script {
                     if (env.BRANCH_NAME == 'main') {
                         sh "docker tag gameeducator-frontend:${env.GIT_COMMIT} gameeducator-frontend:latest"
@@ -74,7 +76,7 @@ pipeline {
 
         stage('Integration Smoke Test') {
             steps {
-                sh 'docker compose -f docker-compose.yml up -d'
+                sh 'docker compose -f docker/docker-compose.yml up -d'
                 sh '''
                     for i in $(seq 1 30); do
                         curl -sf http://localhost:8080/v3/api-docs > /dev/null && break
@@ -86,8 +88,8 @@ pipeline {
             }
             post {
                 always {
-                    sh 'docker compose -f docker-compose.yml logs backend || true'
-                    sh 'docker compose -f docker-compose.yml down -v || true'
+                    sh 'docker compose -f docker/docker-compose.yml logs backend || true'
+                    sh 'docker compose -f docker/docker-compose.yml down -v || true'
                 }
             }
         }
