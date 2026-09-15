@@ -55,3 +55,32 @@ export function buscarProgresso(cursoId) {
 export function buscarRanking(cursoId) {
   return request(`/api/cursos/${cursoId}/ranking`)
 }
+
+export function listarNotas(cursoId) {
+  return request(`/api/cursos/${cursoId}/notas`)
+}
+
+export function lancarNota(cursoId, alunoId, avaliacao, valor) {
+  return request(`/api/cursos/${cursoId}/notas/${alunoId}`, {
+    method: 'POST',
+    body: { avaliacao, valor },
+  })
+}
+
+export function listarPosts(cursoId) {
+  return request(`/api/cursos/${cursoId}/forum`)
+}
+
+export function publicarPost(cursoId, titulo, conteudo) {
+  return request(`/api/cursos/${cursoId}/forum`, {
+    method: 'POST',
+    body: { titulo, conteudo },
+  })
+}
+
+export function responderPost(postId, conteudo) {
+  return request(`/api/forum/posts/${postId}/respostas`, {
+    method: 'POST',
+    body: { conteudo },
+  })
+}
