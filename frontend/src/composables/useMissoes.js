@@ -6,19 +6,43 @@ export function useMissoes(cursoId) {
   const xpTotal = ref(0)
   const resultados = ref({})
   const medalhasRecemConquistadas = ref([])
+  const carregando = ref(false)
+  const erro = ref('')
 
   async function carregar() {
-    missoes.value = await listarMissoes(cursoId)
-    const progresso = await buscarProgresso(cursoId)
-    xpTotal.value = progresso.xpTotal
+    carregando.value = true
+    erro.value = ''
+    try {
+      missoes.value = await listarMissoes(cursoId)
+      const progresso = await buscarProgresso(cursoId)
+      xpTotal.value = progresso.xpTotal
+    } catch (e) {
+      erro.value = e.message
+    } finally {
+      carregando.value = false
+    }
   }
 
   async function responder(desafioId, indiceResposta) {
-    const resultado = await enviarResposta(desafioId, indiceResposta)
-    resultados.value = { ...resultados.value, [desafioId]: resultado }
-    xpTotal.value = resultado.xpTotalNoCurso
-    medalhasRecemConquistadas.value = resultado.medalhasConquistadas ?? []
+    erro.value = ''
+    try {
+      const resultado = await enviarResposta(desafioId, indiceResposta)
+      resultados.value = { ...resultados.value, [desafioId]: resultado }
+      xpTotal.value = resultado.xpTotalNoCurso
+      medalhasRecemConquistadas.value = resultado.medalhasConquistadas ?? []
+    } catch (e) {
+      erro.value = e.message
+    }
   }
 
-  return { missoes, xpTotal, resultados, medalhasRecemConquistadas, carregar, responder }
+  return {
+    missoes,
+    xpTotal,
+    resultados,
+    medalhasRecemConquistadas,
+    carregando,
+    erro,
+    carregar,
+    responder,
+  }
 }
