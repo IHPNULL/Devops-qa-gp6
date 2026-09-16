@@ -5,3 +5,7 @@ backend/target/
 frontend/node_modules/
 frontend/dist/
 testsReports/
+automation/api-tests/target/
+automation/ui-tests/node_modules/
+automation/ui-tests/reports/
+jenkins/jenkins_home/

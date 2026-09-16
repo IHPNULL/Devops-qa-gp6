@@ -10,4 +10,14 @@ services:
   backend:
     environment:
       SPRING_PROFILES_ACTIVE: automation
+      # application-automation.properties libera so http://localhost:5173,4173,8081
+      # (o cenario original, com as portas publicadas no host - continuam validas
+      # para quem roda a automacao direto na maquina). A suite de UI conteinerizada
+      # (docker/ui-tests.Dockerfile) ALEM disso acessa o frontend pelo nome do
+      # servico dentro da rede do Compose (http://frontend), entao o navegador manda
+      # esse Origin - sem incluir http://frontend na lista, o backend rejeita com
+      # 403 "Invalid CORS request" (verificado localmente). Variavel de ambiente do
+      # Spring Boot: repete as origens da properties e ACRESCENTA http://frontend,
+      # sem tocar em codigo da aplicacao.
+      APP_CORS_ALLOWED_ORIGINS: http://localhost:5173,http://localhost:4173,http://localhost:8081,http://frontend
     depends_on: !reset []

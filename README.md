@@ -20,6 +20,13 @@ notas e usa o fórum de cada curso.
 
 Relatório de cobertura: `target/site/jacoco/index.html`.
 
+### Docker e Jenkins
+
+Cada projeto (backend, frontend, e as duas suítes de automação) tem sua
+própria imagem Docker em `docker/*.Dockerfile`. Para rodar tudo (build +
+testes + integração) de forma automática, use o Jenkins local deste
+repositório: veja [`jenkins/README.md`](jenkins/README.md).
+
 ---
 
 ## Planejamento (processo ATDD)

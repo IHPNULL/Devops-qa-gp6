@@ -1,3 +1,8 @@
+# IMAGE_TAG: tag das imagens gameeducator-backend/gameeducator-frontend.
+# Localmente ("docker compose up --build") fica "local" por padrao. A
+# pipeline do Jenkins (ver Jenkinsfile) define IMAGE_TAG com a tag que ela
+# acabou de construir e sobe com "up --no-build", para nunca reconstruir uma
+# imagem diferente da que os testes validaram.
 services:
   db:
     image: postgres:16-alpine
@@ -16,6 +21,7 @@ services:
       retries: 10
 
   backend:
+    image: gameeducator-backend:${IMAGE_TAG:-local}
     build:
       context: ..
       dockerfile: docker/backend.Dockerfile
@@ -33,6 +39,7 @@ services:
       - "8080:8080"
 
   frontend:
+    image: gameeducator-frontend:${IMAGE_TAG:-local}
     build:
       context: ..
       dockerfile: docker/frontend.Dockerfile
