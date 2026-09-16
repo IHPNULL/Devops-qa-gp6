@@ -3,6 +3,14 @@
 # pipeline do Jenkins (ver Jenkinsfile) define IMAGE_TAG com a tag que ela
 # acabou de construir e sobe com "up --no-build", para nunca reconstruir uma
 # imagem diferente da que os testes validaram.
+# Nome de projeto explicito: sem isto o Compose usa o nome da pasta
+# ("docker") como projeto, que colide com qualquer outro checkout deste
+# repo cujo diretorio docker/ tambem se chame "docker" -- containers,
+# volumes (db-data, pgadmin-data) e a network ficam compartilhados entre
+# os dois checkouts, causando estado (senha, servidor cadastrado) de um
+# vazar para o outro.
+name: gameeducator
+
 services:
   db:
     image: postgres:16-alpine
@@ -53,8 +61,34 @@ services:
   pgadmin:
     image: dpage/pgadmin4
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@gameeducator.local
+      # Nao usar TLD reservado (.local): o validador de e-mail do pgAdmin
+      # rejeita e o container sai com codigo 1 antes de subir.
+      PGADMIN_DEFAULT_EMAIL: admin@gameeducator.com
       PGADMIN_DEFAULT_PASSWORD: admin
+      # Desktop mode: sem tela de login. O pgAdmin fica aberto para
+      # qualquer um que alcance a porta 5050 -- use so em ambiente local.
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+      # Em desktop mode o pgAdmin loga sozinho como DESKTOP_USER; sem isto
+      # ele procura o usuario padrao pgadmin4@pgadmin.org e devolve 401.
+      # PGADMIN_CONFIG_* e avaliado como literal Python -> aspas duplas.
+      PGADMIN_CONFIG_DESKTOP_USER: "'admin@gameeducator.com'"
+      # Registra o servidor 'db' sozinho na arvore do pgAdmin. Importado
+      # na primeira subida do container (config db vazia) -- ver README.
+      PGADMIN_SERVER_JSON_FILE: /pgadmin4/servers.json
+      # Sem isto o import so roda quando a config db do pgAdmin ainda nao
+      # existe. Ela vive no volume abaixo e sobrevive a recriacoes do
+      # container, entao o servidor sumiria do servers.json em diante.
+      PGADMIN_REPLACE_SERVERS_ON_STARTUP: 'True'
+      # pgpass -> o entrypoint copia para /var/lib/pgadmin/.pgpass (chmod
+      # 600) e o servers.json aponta PassFile para la, entao o pgAdmin
+      # conecta sem pedir senha. So e instalado na PRIMEIRA subida: se
+      # mudar o arquivo, recrie o volume pgadmin-data.
+      PGPASS_FILE: /pgadmin4/pgpass
+    volumes:
+      - ./pgadmin-servers.json:/pgadmin4/servers.json:ro
+      - ./pgadmin-pgpass:/pgadmin4/pgpass:ro
+      - pgadmin-data:/var/lib/pgadmin
     ports:
       - "5050:80"
     depends_on:
@@ -62,3 +96,4 @@ services:
 
 volumes:
   db-data:
+  pgadmin-data:

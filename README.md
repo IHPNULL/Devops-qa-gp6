@@ -87,3 +87,57 @@ Os testes foram organizados assim:
   fácil relacionar o teste ao cenário BDD.
 - O quality gate está configurado no `pom.xml`. O build falha se a cobertura
   ficar abaixo de 95% das linhas ou 90% das branches.
+
+---
+
+## Automação (Cucumber, ponta a ponta)
+
+Além dos testes acima (dentro do módulo do backend), duas suítes em
+`automation/` validam o sistema de ponta a ponta contra um backend + frontend
+**reais**, no perfil `automation` (H2 em memória com dados fixos e mocados —
+nunca dados de produção):
+
+| Suíte                  | Nível          | Stack                          |
+|-------------------------|----------------|---------------------------------|
+| `automation/api-tests`  | API REST       | Cucumber-JVM + REST-assured (Java) |
+| `automation/ui-tests`   | navegador      | Cucumber.js + Playwright (Node.js) |
+
+**1. Suba o backend + frontend no perfil de automação** (a partir da raiz do repositório):
+
+```bash
+docker compose -f docker/docker-compose.yml -f automation/docker-compose.automation.yml \
+  up -d backend frontend
+```
+
+Publica `backend` em `http://localhost:8080` e `frontend` em `http://localhost:8081`.
+
+**2. Rode as suítes:**
+
+```bash
+# API (Cucumber-JVM) — contra http://localhost:8080 por padrão
+cd automation/api-tests
+./mvnw test
+# outro host/porta: ./mvnw test -Dautomation.baseUrl=http://outro:porta
+
+# UI (Cucumber.js + Playwright) — contra http://localhost:8081 por padrão
+cd automation/ui-tests
+npm ci
+npx playwright install --with-deps chromium   # só na 1ª vez / máquina nova
+npm test
+# outro host/porta: AUTOMATION_FRONTEND_URL=http://outro npm test
+```
+
+Relatórios:
+- API: `automation/api-tests/target/cucumber-report/cucumber-report.html` e `target/surefire-reports/`
+- UI: `automation/ui-tests/reports/cucumber-report.html` e `reports/junit-report.xml`
+
+**3. Derrube o ambiente:**
+
+```bash
+docker compose -f docker/docker-compose.yml -f automation/docker-compose.automation.yml down -v
+```
+
+> Esse fluxo inteiro (build das imagens + testes unitários + integração com
+> Postgres + as duas suítes Cucumber acima, tudo containerizado) roda
+> automaticamente pelo Jenkins local deste repositório: veja
+> [`jenkins/README.md`](jenkins/README.md).
